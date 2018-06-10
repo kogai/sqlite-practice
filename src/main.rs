@@ -1,7 +1,14 @@
+mod lexer;
+
 use std::io::{self, Write};
 use std::process::exit;
 
-pub fn run() {
+fn parse(raw_query: String) -> Vec<u8> {
+    unimplemented!();
+}
+// cmd => println!(r#"Unrecoganized command "{}"."#, cmd),
+
+fn run() {
     let prompt = "sqlite> ";
     let mut input_buffer = String::new();
 
@@ -11,13 +18,13 @@ pub fn run() {
 
         io::stdin().read_line(&mut input_buffer).unwrap();
         let cmd = input_buffer.to_owned();
-        match cmd.as_str().trim() {
+        let mut result = match cmd.as_str().trim() {
             ".exit" => exit(0),
-            x => {
-                println!(r#"Unrecoganized command "{}"."#, x);
-                input_buffer = "".to_string();
-            }
+            cmd => parse(cmd.to_owned()),
         };
+        io::stdout().write_all(&mut result).unwrap();
+        io::stdout().flush().unwrap();
+        input_buffer = "".to_string();
     }
 }
 
