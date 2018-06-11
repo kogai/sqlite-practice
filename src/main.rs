@@ -1,13 +1,23 @@
 mod ast;
 mod token;
 
+use ast::Parser;
 use std::io::{self, Write};
 use std::process::exit;
+use token::Lexer;
+
+/*
+id: integer 4bytes
+username: varchar(32) 32bytes
+email: varchar(255) 255bytes
+NOTE: For simplicity, we hardcode a user schema as above.
+*/
 
 fn parse(raw_query: String) -> Vec<u8> {
-    unimplemented!();
+    let expressions = Parser::new(Lexer::new(raw_query)).parse();
+    println!("{:?}", expressions);
+    b"Command has not implemented.\n".to_vec()
 }
-// cmd => println!(r#"Unrecoganized command "{}"."#, cmd),
 
 fn run() {
     let prompt = "sqlite> ";
