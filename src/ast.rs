@@ -3,7 +3,7 @@ use token::{Lexer, Token, TokenType};
 #[derive(Debug, PartialEq)]
 pub enum Ast {
   InsertExpression(Vec<String>),
-  DeleteExpression(Vec<String>),
+  DeleteExpression,
   SelectExpression,
 }
 
@@ -33,20 +33,45 @@ impl Parser {
   pub fn parse(&mut self) -> Expressions {
     let mut expressions = vec![];
     while self.current_token.token_type != TokenType::Eof {
-      let ast = self.parse_expression();
-      expressions.push(ast);
+      expressions.push(self.parse_expression());
       self.next_token();
     }
     expressions
   }
 
-  fn parse_expression(&self) -> Ast {
-    unimplemented!();
+  fn parse_expression(&mut self) -> Ast {
+    let ast = match self.current_token.token_type {
+      TokenType::Insert => self.parse_insert(),
+      TokenType::Delete => {
+        self.next_token();
+        Ast::DeleteExpression
+      }
+      TokenType::Select => {
+        self.next_token();
+        Ast::SelectExpression
+      }
+      _ => {
+        unimplemented!();
+      }
+    };
+    ast
   }
 
   fn next_token(&mut self) {
     self.current_token = self.peek_token.to_owned();
     self.peek_token = self.lexer.next_token();
+  }
+
+  fn parse_insert(&mut self) -> Ast {
+    self.next_token();
+
+    let mut instructions = vec![];
+    while self.current_token.token_type != TokenType::SemiColon {
+      let token = self.current_token.literal.to_owned();
+      instructions.push(token);
+      self.next_token();
+    }
+    Ast::InsertExpression(instructions)
   }
 }
 
@@ -62,12 +87,12 @@ mod tests {
       Parser::new(Lexer::new(
         r#"SELECT;
 INSERT foo bar;
-DELETE foo;"#.to_string(),
+DELETE;"#.to_string(),
       )).parse(),
       vec![
         SelectExpression,
-        InsertExpression(vec![]),
-        DeleteExpression(vec![]),
+        InsertExpression(vec!["foo".to_owned(), "bar".to_owned()]),
+        DeleteExpression,
       ]
     );
   }
