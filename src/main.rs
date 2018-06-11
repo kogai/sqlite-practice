@@ -1,4 +1,5 @@
-mod lexer;
+mod ast;
+mod token;
 
 use std::io::{self, Write};
 use std::process::exit;

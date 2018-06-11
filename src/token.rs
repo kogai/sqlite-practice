@@ -1,11 +1,11 @@
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
-  Eof,
   Insert,
   Delete,
   Select,
   SemiColon,
   Yet,
+  Eof,
 }
 
 #[derive(Debug, PartialEq)]
@@ -87,10 +87,6 @@ impl Lexer {
     self.input.get(position as usize).cloned()
   }
 
-  // fn peek_char(&self) -> char {
-  //   self.nth_char(self.read_position - 1)
-  // }
-
   fn read_char(&mut self) {
     self.current_char = if let Some(c) = self.nth_char(self.position) {
       c
@@ -130,43 +126,6 @@ impl Lexer {
     let spliced = input.drain(start..end).collect::<String>();
     spliced
   }
-
-  /*
-  fn read_string(&mut self) -> String {
-    self.read_char();
-    let start = (self.position - 1) as usize;
-
-    while self.current_char != "\"" {
-      self.read_char();
-    }
-
-    let input_chars = self.input.chars().collect::<Vec<char>>();
-    let end = (self.position - 1) as usize;
-    self.read_char();
-
-    (&input_chars[start..end])
-      .iter()
-      .fold("".to_string(), |acc, &s| {
-        format!("{}{}", acc, s.to_string())
-      })
-  }
-  fn read_digit(&mut self) -> String {
-    let start = (self.position - 1) as usize;
-
-    while is_digit(&self.current_char) {
-      self.read_char();
-    }
-
-    let input_chars = self.input.chars().collect::<Vec<char>>();
-    let end = (self.position - 1) as usize;
-    let splited = &input_chars[start..end]
-      .iter()
-      .fold("".to_string(), |acc, &s| {
-        format!("{}{}", acc, s.to_string())
-      });
-    (*splited).to_string()
-  }
-  */
 }
 
 #[cfg(test)]

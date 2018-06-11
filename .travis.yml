@@ -1,0 +1,20 @@
+language: rust
+cache: cargo
+rust:
+  - 1.26.2
+addons:
+  apt:
+    update: true
+matrix:
+  include:
+    - os: linux
+    - os: osx
+notifications:
+  email:
+    on_success: never
+    on_failure: never
+  slack:
+    on_success: change
+    on_failure: change
+    secure: >-
+      ay7laBX3hfgcYeWI6zQhv9G+hpO+1v+ECHFYNWY55c0foEEQk2VdHfu2T+cvwm545T0dSidL80bdAqJaeCN8A81Ka5R+lec06eyVVtQnCaKUG113qtrlp2uK0FPaKzBgujxn102zrqdfRn7F2ToRQce12ukfonc1ySLiLthbkh8gzFnlq1pTtlcybp7E+NeTL7DrzqrDt2dc7Te2HDsppXOYCFczeWGRcFrmL7sYZof9xphiDZBwVqPZecfEskxIJ9S8t0Tv2/tZ38jX6hX258zR5OrBfbnxOT5gIy/FL8yDFubyJIqaIZVhZBeoGefOZSZ9ZQbhUE/+e56EdDD2JkDoETak97FLr+f64LQgBGFCg8u502Cs125rzmiGN2D3L2qiM4eKn97py2L8PMhmeTjTcuy7P4+F63uAY6SeZSO8c+euJEfMCyGuIPdYF0aIYf3N0+vjCRtSbJ0Zx7NxEgKSFwE5oll261OQbqMqmymqti1z6LTXEjWFoxwf8k/u3s0NMOK+iH5moPNXQf0iiHEjTjgk8IBlJk9R3PrzbhRbTIFNYPakZungwc/x0Xjxjec16+XhDfuQvLNnZK2B1m/tnRmzwY9ztGPFLFPyFYZ2YFQGfVagz3NuSjQkm7hPG2ZAAnYmTZTrm3dxqP8Ur9glLbCVFePJaS9lJgLXzcI=
