@@ -46,20 +46,23 @@ pub struct Lexer {
   column: u8,
 }
 
+fn is_letter(s: char) -> bool {
+  'a' <= s && s <= 'z' || 'A' <= s && s <= 'Z' || '_' == s
+}
+
 impl Lexer {
   pub fn new(input: String) -> Self {
     let input: Vec<char> = input.chars().collect();
     let current_char = input.get(0).expect("Empty string!").to_owned();
 
-    let mut lexer = Lexer {
+    Lexer {
       input,
       current_char,
       position: 1,
       read_position: 2,
       line: 1,
       column: 1,
-    };
-    lexer
+    }
   }
 
   fn skip_white_space(&mut self) {
@@ -67,6 +70,8 @@ impl Lexer {
       '\n' | '\r' => {
         self.column = 0;
         self.line = self.line + 1;
+        self.read_char();
+        self.skip_white_space();
       }
       ' ' | '　' | '\t' => {
         self.read_char();
@@ -76,73 +81,62 @@ impl Lexer {
     };
   }
 
-  fn nth_char(&self, position: u32) -> char {
-    self
-      .input
-      .get(self.position as usize)
-      .expect(&format!("Index of input {} is out of range", self.position))
-      .to_owned()
+  fn nth_char(&self, position: u32) -> Option<char> {
+    self.input.get(position as usize).cloned()
   }
 
-  fn peek_char(&self) -> char {
-    self.nth_char(self.read_position - 1)
-  }
+  // fn peek_char(&self) -> char {
+  //   self.nth_char(self.read_position - 1)
+  // }
 
-  fn read_char(&mut self) {
-    self.current_char = self.nth_char(self.position);
-    self.position = self.read_position;
-    self.column += 1;
-    self.read_position += 1;
+  fn read_char(&mut self) -> Option<()> {
+    if let Some(c) = self.nth_char(self.position) {
+      self.current_char = c;
+      self.position = self.read_position;
+      self.column += 1;
+      self.read_position += 1;
+      // } else {
+      //   println!("{:?}", self);
+      //   // self.current_char = 'i';
+      //   self.position = self.read_position;
+      //   self.column += 1;
+      //   self.read_position += 1;
+      Some(())
+    } else {
+      // EOF
+      println!("{}", self.current_char);
+      self.position = self.read_position;
+      self.column += 1;
+      self.read_position += 1;
+      None
+    }
   }
 
   pub fn next_token(&mut self) -> Token {
     self.skip_white_space();
-    let current_char = self.current_char;
-    let column = self.column;
-    let line = self.line;
-
-    // let seed = match current_char {
-    //   x if is_letter(x) => self.read_identifier(),
-    //   x if is_digit(x) => self.read_digit(),
-    //   x if x == "=" && self.peak_char() == "=" => {
-    //     self.read_char();
-    //     self.read_char();
-    //     format!("{}{}", x, "=")
-    //   }
-    //   x if x == "!" && self.peak_char() == "=" => {
-    //     self.read_char();
-    //     self.read_char();
-    //     format!("{}{}", x, "=")
-    //   }
-    //   x if x == "\"" => {
-    //     is_string = true;
-    //     self.read_string()
-    //   }
-    //   x => {
-    //     self.read_char();
-    //     x.clone()
-    //   }
-    // };
-    // token::Token::new(seed, is_string, self.line, position)
-    unimplemented!();
+    let literal = if is_letter(self.current_char) {
+      self.read_identifier()
+    } else {
+      let current_char = self.current_char;
+      match self.read_char() {
+        Some(_) => current_char.to_string(),
+        None => "".to_owned(),
+      }
+    };
+    Token::new(literal, self.line, self.column)
   }
 
   fn read_identifier(&mut self) -> String {
-    // let start = (self.position - 1) as usize;
+    let start = (self.position - 1) as usize;
 
-    // while is_letter(&self.current_char) {
-    //   self.read_char();
-    // }
+    while is_letter(self.current_char) {
+      self.read_char();
+    }
 
-    // let input_chars = self.input.chars().collect::<Vec<char>>();
-    // let end = (self.position - 1) as usize;
-    // let splited = &input_chars[start..end]
-    //   .iter()
-    //   .fold("".to_string(), |acc, &s| {
-    //     format!("{}{}", acc, s.to_string())
-    //   });
-    // (*splited).to_string()
-    unimplemented!();
+    let end = (self.position - 1) as usize;
+    let mut input = self.input.clone();
+    let spliced = input.drain(start..end).collect::<String>();
+    spliced
   }
 
   /*
@@ -180,7 +174,6 @@ impl Lexer {
       });
     (*splited).to_string()
   }
-
   */
 }
 
@@ -190,27 +183,29 @@ mod tests {
 
   #[test]
   fn test_tokenize() {
-    let mut l = Lexer::new(
-      r#"SELECT;
-INSERT foo bar;
-DELETE foo;"#.to_string(),
-    );
+    //     let mut l = Lexer::new(
+    //       r#"SELECT;
+    // INSERT foo bar;
+    // DELETE foo;"#.to_string(),
+    //     );
+    let mut l = Lexer::new(r#"SELECT;"#.to_string());
     use self::TokenType::*;
     let expects = vec![
       (Select, "SELECT"),
       (SemiColon, ";"),
-      (Insert, "INSERT"),
-      (Yet, "foo"),
-      (Yet, "bar"),
-      (SemiColon, ";"),
-      (Delete, "Delete"),
-      (Yet, "foo"),
-      (SemiColon, ";"),
+      // (Insert, "INSERT"),
+      // (Yet, "foo"),
+      // (Yet, "bar"),
+      // (SemiColon, ";"),
+      // (Delete, "DELETE"),
+      // (Yet, "foo"),
+      // (SemiColon, ";"),
       (Eof, ""),
     ];
 
     for (token_type, literal) in expects {
       let t = l.next_token();
+      println!("{:?}", t);
       assert_eq!(t.token_type, token_type);
       assert_eq!(t.literal, literal);
     }
