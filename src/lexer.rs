@@ -50,6 +50,8 @@ fn is_letter(s: char) -> bool {
   'a' <= s && s <= 'z' || 'A' <= s && s <= 'Z' || '_' == s
 }
 
+const EMPTY_CHAR: char = '\u{3}';
+
 impl Lexer {
   pub fn new(input: String) -> Self {
     let input: Vec<char> = input.chars().collect();
@@ -89,38 +91,28 @@ impl Lexer {
   //   self.nth_char(self.read_position - 1)
   // }
 
-  fn read_char(&mut self) -> Option<()> {
-    if let Some(c) = self.nth_char(self.position) {
-      self.current_char = c;
-      self.position = self.read_position;
-      self.column += 1;
-      self.read_position += 1;
-      // } else {
-      //   println!("{:?}", self);
-      //   // self.current_char = 'i';
-      //   self.position = self.read_position;
-      //   self.column += 1;
-      //   self.read_position += 1;
-      Some(())
+  fn read_char(&mut self) {
+    self.current_char = if let Some(c) = self.nth_char(self.position) {
+      c
     } else {
-      // EOF
-      println!("{}", self.current_char);
-      self.position = self.read_position;
-      self.column += 1;
-      self.read_position += 1;
-      None
-    }
+      EMPTY_CHAR
+    };
+    self.position = self.read_position;
+    self.column += 1;
+    self.read_position += 1;
   }
 
   pub fn next_token(&mut self) -> Token {
     self.skip_white_space();
-    let literal = if is_letter(self.current_char) {
-      self.read_identifier()
-    } else {
-      let current_char = self.current_char;
-      match self.read_char() {
-        Some(_) => current_char.to_string(),
-        None => "".to_owned(),
+    let literal = match self.current_char {
+      x if is_letter(x) => self.read_identifier(),
+      x => {
+        self.read_char();
+        if x == EMPTY_CHAR {
+          "".to_owned()
+        } else {
+          x.to_string()
+        }
       }
     };
     Token::new(literal, self.line, self.column)
@@ -183,29 +175,27 @@ mod tests {
 
   #[test]
   fn test_tokenize() {
-    //     let mut l = Lexer::new(
-    //       r#"SELECT;
-    // INSERT foo bar;
-    // DELETE foo;"#.to_string(),
-    //     );
-    let mut l = Lexer::new(r#"SELECT;"#.to_string());
+    let mut l = Lexer::new(
+      r#"SELECT;
+    INSERT foo bar;
+    DELETE foo;"#.to_string(),
+    );
     use self::TokenType::*;
     let expects = vec![
       (Select, "SELECT"),
       (SemiColon, ";"),
-      // (Insert, "INSERT"),
-      // (Yet, "foo"),
-      // (Yet, "bar"),
-      // (SemiColon, ";"),
-      // (Delete, "DELETE"),
-      // (Yet, "foo"),
-      // (SemiColon, ";"),
+      (Insert, "INSERT"),
+      (Yet, "foo"),
+      (Yet, "bar"),
+      (SemiColon, ";"),
+      (Delete, "DELETE"),
+      (Yet, "foo"),
+      (SemiColon, ";"),
       (Eof, ""),
     ];
 
     for (token_type, literal) in expects {
       let t = l.next_token();
-      println!("{:?}", t);
       assert_eq!(t.token_type, token_type);
       assert_eq!(t.literal, literal);
     }
