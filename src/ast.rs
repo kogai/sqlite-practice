@@ -1,42 +1,74 @@
-use token::{Lexer, Token};
+use token::{Lexer, Token, TokenType};
 
+#[derive(Debug, PartialEq)]
 pub enum Ast {
   InsertExpression(Vec<String>),
-  DeleteExpression,
+  DeleteExpression(Vec<String>),
   SelectExpression,
-  Yet,
 }
+
+pub type Expressions = Vec<Ast>;
 
 #[derive(Debug)]
 pub struct Parser {
   lexer: Lexer,
   current_token: Token,
   peek_token: Token,
-  // errors: Vec<String>,
+  /* TODO
+  errors: Vec<String>,
+   */
 }
 
-// impl Parser {
-//   pub fn new(mut lexer: Lexer) -> Self {
-//     let first = lexer.next_token();
-//     let second = lexer.next_token();
-//     Parser {
-//       lexer: lexer,
-//       current_token: first,
-//       peek_token: second,
-//       errors: vec![],
-//     }
-//   }
+impl Parser {
+  pub fn new(mut lexer: Lexer) -> Self {
+    let current_token = lexer.next_token();
+    let peek_token = lexer.next_token();
+    Parser {
+      lexer,
+      current_token,
+      peek_token,
+    }
+  }
 
-//     pub fn parse_program(&mut self) -> Program {
-//         let mut statements: Vec<Statements> = vec![];
+  pub fn parse(&mut self) -> Expressions {
+    let mut expressions = vec![];
+    while self.current_token.token_type != TokenType::Eof {
+      let ast = self.parse_expression();
+      expressions.push(ast);
+      self.next_token();
+    }
+    expressions
+  }
 
-//         while self.current_token.token_type != TokenType::EOF {
-//             let statement = self.parse_statement();
-//             statements.push(statement);
-//             self.next_token();
-//         }
+  fn parse_expression(&self) -> Ast {
+    unimplemented!();
+  }
 
-//         Program { statements: statements }
-// }
+  fn next_token(&mut self) {
+    self.current_token = self.peek_token.to_owned();
+    self.peek_token = self.lexer.next_token();
+  }
+}
 
-// }
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_ast() {
+    use self::Ast::*;
+
+    assert_eq!(
+      Parser::new(Lexer::new(
+        r#"SELECT;
+INSERT foo bar;
+DELETE foo;"#.to_string(),
+      )).parse(),
+      vec![
+        SelectExpression,
+        InsertExpression(vec![]),
+        DeleteExpression(vec![]),
+      ]
+    );
+  }
+}
