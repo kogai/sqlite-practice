@@ -6,6 +6,7 @@ use ast::Parser;
 use std::io::{self, Write};
 use std::process::exit;
 use token::Lexer;
+
 fn parse(raw_query: String) -> Vec<u8> {
     let expressions = Parser::new(Lexer::new(raw_query)).parse();
     println!("{:?}", expressions);
