@@ -56,13 +56,22 @@ impl Row {
     let id = &source[0..ID_SIZE];
     let username = &source[ID_SIZE..username_offset];
     let email = &source[username_offset..];
-    // let username = self.username.iter().collect::<String>();
-    // let email = self.email.iter().collect::<String>();
-    // let id: u32 = unsafe { transmute(id) };
-    println!("{:?}", id);
-    println!("{:?}", username);
-    println!("{:?}", email);
-    unimplemented!();
+
+    let mut buf_id = [0; ID_SIZE];
+    let mut buf_username = [0; USERNAME_SIZE * 4];
+    let mut buf_email = [0; EMAIL_SIZE * 4];
+    buf_id.copy_from_slice(&id);
+    buf_username.copy_from_slice(&username);
+    buf_email.copy_from_slice(&email);
+
+    let id: u32 = unsafe { transmute(buf_id) };
+    let username: [char; USERNAME_SIZE] = unsafe { transmute(buf_username) };
+    let email: [char; EMAIL_SIZE] = unsafe { transmute(buf_email) };
+    Row {
+      id,
+      username,
+      email,
+    }
   }
 }
 
@@ -101,11 +110,6 @@ mod tests {
       "sample-user-name".to_owned(),
       "sample-email@user.com".to_owned(),
     );
-
-    // println!(
-    //   "{:?}",
-    //   unsafe { transmute::<[char; 4], [u8; 16]>(['a', 'b', 'c', 'd']) }.to_vec()
-    // );
     assert_eq!(bytes_of_row, Row::de(bytes_of_row.ser()));
   }
 }
