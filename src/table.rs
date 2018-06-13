@@ -1,6 +1,5 @@
 use std::fmt;
 use std::mem::transmute;
-use std::ptr;
 
 /*
 id: integer 4bytes
@@ -8,7 +7,6 @@ username: varchar(32) 32bytes
 email: varchar(255) 255bytes
 NOTE: For simplicity, we hardcode a user schema as above.
 */
-
 const ID_SIZE: usize = 4;
 const USERNAME_SIZE: usize = 32;
 const EMAIL_SIZE: usize = 255;
@@ -97,11 +95,15 @@ impl Table {
     let row_num = self.last_row as usize;
     let page_num = row_num / ROWS_PER_PAGE;
 
-    self.last_row += self.last_row;
+    self.last_row += 1;
 
     let mut page_empty = vec![];
     page_empty.resize(PAGE_SIZE, 0);
-    let mut page = self.pages.get(page_num).unwrap_or(&page_empty).to_owned();
+    let mut page = self
+      .pages
+      .get(page_num)
+      .unwrap_or(&mut page_empty)
+      .to_owned();
 
     let row_offset = row_num % ROWS_PER_PAGE;
     let byte_offset = row_offset * ROW_SIZE;
@@ -112,11 +114,15 @@ impl Table {
       page[i] = *el;
     }
 
-    let page_ptr = self.pages.as_mut_ptr();
-    unsafe {
-      // signal: 11, SIGSEGV: invalid memory reference
-      ptr::write(page_ptr, page);
-    }
+    match self.pages.get_mut(page_num) {
+      Some(_) => {
+        let pages = self.pages.as_mut_slice();
+        pages[page_num] = page;
+      }
+      None => {
+        self.pages.push(page);
+      }
+    };
   }
 }
 
@@ -162,11 +168,15 @@ mod tests {
   #[test]
   fn test_insert() {
     let mut table = Table::new();
-    table.insert(Row::new(
-      1u32,
-      "sample-user-name".to_owned(),
-      "sample-email@user.com".to_owned(),
-    ));
+    for i in 0..100 {
+      table.insert(Row::new(
+        i,
+        format!("sample-user-name-{}", i),
+        format!("sample-user-name-{}@user.com", i),
+      ));
+    }
+    assert_eq!(table.last_row, 100);
+    assert_eq!(table.pages.len(), 8);
     println!("{:?}", table);
   }
 }
