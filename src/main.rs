@@ -2,20 +2,35 @@ mod ast;
 mod table;
 mod token;
 
-use ast::Parser;
+use ast::{Ast, Parser};
 use std::io::{self, Write};
 use std::process::exit;
+use table::{Row, Table};
 use token::Lexer;
 
-fn parse(raw_query: String) -> Vec<u8> {
+fn parse(raw_query: String, tbl: &mut Table) -> Vec<u8> {
     let expressions = Parser::new(Lexer::new(raw_query)).parse();
-    println!("{:?}", expressions);
-    b"Command has not implemented.\n".to_vec()
+    match expressions.get(0).unwrap() {
+        Ast::InsertExpression(statements) => {
+            let id = u32::from_str_radix(statements.get(0).unwrap().as_ref(), 10).unwrap();
+            let username = statements.get(1).unwrap().to_owned();
+            let email = statements.get(2).unwrap().to_owned();
+            let row = Row::new(id, username, email);
+            tbl.insert(row);
+            b"Insert successed.\n".to_vec()
+        }
+        Ast::SelectExpression => {
+            let result = tbl.select();
+            format!("{:?}\n", result).as_bytes().to_vec()
+        }
+        Ast::DeleteExpression => b"Not implemented yet.\n".to_vec(),
+    }
 }
 
 fn run() {
     let prompt = "sqlite> ";
     let mut input_buffer = String::new();
+    let mut tbl = Table::new();
 
     loop {
         io::stdout().write_all(&mut prompt.as_bytes()).unwrap();
@@ -25,7 +40,7 @@ fn run() {
         let cmd = input_buffer.to_owned();
         let mut result = match cmd.as_str().trim() {
             ".exit" => exit(0),
-            cmd => parse(cmd.to_owned()),
+            cmd => parse(cmd.to_owned(), &mut tbl),
         };
         io::stdout().write_all(&mut result).unwrap();
         io::stdout().flush().unwrap();

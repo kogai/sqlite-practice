@@ -13,8 +13,8 @@ const EMAIL_SIZE: usize = 255;
 const ROW_SIZE: usize = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
 const PAGE_SIZE: usize = 4096;
 const ROWS_PER_PAGE: usize = PAGE_SIZE / ROW_SIZE;
-const MAX_PAGE: usize = 100;
-const MAX_ROWS: usize = ROWS_PER_PAGE * MAX_PAGE;
+// const MAX_PAGE: usize = 100;
+// const MAX_ROWS: usize = ROWS_PER_PAGE * MAX_PAGE;
 
 pub struct Row {
   id: u32,
@@ -74,6 +74,18 @@ impl Row {
   }
 }
 
+impl fmt::Debug for Row {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    let username = String::from_utf8_lossy(&self.username);
+    let email = String::from_utf8_lossy(&self.email);
+    write!(
+      f,
+      "Row {{ id: {}, username: {}, email: {} }}",
+      self.id, username, email
+    )
+  }
+}
+
 type Page = Vec<u8>;
 
 #[derive(Debug)]
@@ -83,14 +95,14 @@ pub struct Table {
 }
 
 impl Table {
-  fn new() -> Self {
+  pub fn new() -> Self {
     Table {
       pages: vec![],
       last_row: 0,
     }
   }
 
-  fn insert(&mut self, row: Row) {
+  pub fn insert(&mut self, row: Row) {
     let row = row.ser();
     let row_num = self.last_row as usize;
     let page_num = row_num / ROWS_PER_PAGE;
@@ -125,7 +137,7 @@ impl Table {
     };
   }
 
-  fn select(&self) -> Vec<Row> {
+  pub fn select(&self) -> Vec<Row> {
     let row_num = self.last_row as usize;
     let mut buf: Vec<Row> = vec![];
     for i in 0..row_num {
@@ -147,18 +159,6 @@ impl Table {
 #[cfg(test)]
 mod tests {
   use super::*;
-
-  impl fmt::Debug for Row {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-      let username = String::from_utf8_lossy(&self.username);
-      let email = String::from_utf8_lossy(&self.email);
-      write!(
-        f,
-        "Row {{ id: {}, username: {}, email: {} }}",
-        self.id, username, email
-      )
-    }
-  }
 
   impl PartialEq for Row {
     fn eq(&self, other: &Self) -> bool {
