@@ -124,6 +124,24 @@ impl Table {
       }
     };
   }
+
+  fn select(&self) -> Vec<Row> {
+    let row_num = self.last_row as usize;
+    let mut buf: Vec<Row> = vec![];
+    for i in 0..row_num {
+      let page_num = i / ROWS_PER_PAGE;
+      let mut page = self.pages.get(page_num).unwrap().to_owned();
+      let row_offset = i % ROWS_PER_PAGE;
+      let byte_offset = row_offset * ROW_SIZE;
+      let row = page
+        .drain(byte_offset..byte_offset + ROW_SIZE)
+        .collect::<Vec<_>>();
+      let mut buf_row = [0; ROW_SIZE];
+      buf_row.copy_from_slice(&row);
+      buf.push(Row::de(buf_row));
+    }
+    buf
+  }
 }
 
 #[cfg(test)]
@@ -168,15 +186,33 @@ mod tests {
   #[test]
   fn test_insert() {
     let mut table = Table::new();
-    for i in 0..100 {
+    for i in 0..20 {
       table.insert(Row::new(
         i,
         format!("sample-user-name-{}", i),
         format!("sample-user-name-{}@user.com", i),
       ));
     }
-    assert_eq!(table.last_row, 100);
-    assert_eq!(table.pages.len(), 8);
-    println!("{:?}", table);
+    assert_eq!(table.last_row, 20);
+    assert_eq!(table.pages.len(), 2);
+  }
+
+  #[test]
+  fn test_select() {
+    let mut table = Table::new();
+    let mut expects = vec![];
+    for i in 0..20 {
+      table.insert(Row::new(
+        i,
+        format!("sample-user-name-{}", i),
+        format!("sample-user-name-{}@user.com", i),
+      ));
+      expects.push(Row::new(
+        i,
+        format!("sample-user-name-{}", i),
+        format!("sample-user-name-{}@user.com", i),
+      ));
+    }
+    assert_eq!(table.select(), expects);
   }
 }
