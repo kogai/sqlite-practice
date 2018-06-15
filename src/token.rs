@@ -4,7 +4,7 @@ pub enum TokenType {
   Delete,
   Select,
   SemiColon,
-  Yet,
+  StringLiteral,
   Eof,
 }
 
@@ -25,7 +25,7 @@ impl Token {
       "DELETE" | "delete" => Delete,
       ";" => SemiColon,
       "" => Eof,
-      _ => Yet,
+      _ => StringLiteral,
     };
     Token {
       token_type,
@@ -101,6 +101,7 @@ impl Lexer {
   pub fn next_token(&mut self) -> Token {
     self.skip_white_space();
     let literal = match self.current_char {
+      '\'' => self.read_string(),
       x if is_letter(x) => self.read_identifier(),
       x => {
         self.read_char();
@@ -126,6 +127,21 @@ impl Lexer {
     let spliced = input.drain(start..end).collect::<String>();
     spliced
   }
+
+  fn read_string(&mut self) -> String {
+    self.read_char();
+    let start = (self.position - 1) as usize;
+
+    while self.current_char != '\'' {
+      self.read_char();
+    }
+
+    let end = (self.position - 1) as usize;
+    self.read_char();
+    let mut input = self.input.clone();
+    let spliced = input.drain(start..end).collect::<String>();
+    spliced
+  }
 }
 
 #[cfg(test)]
@@ -136,7 +152,7 @@ mod tests {
   fn test_tokenize() {
     let mut l = Lexer::new(
       r#"SELECT;
-    INSERT foo bar;
+    INSERT foo bar 'a@b.c';
     DELETE foo;"#.to_string(),
     );
     use self::TokenType::*;
@@ -144,11 +160,12 @@ mod tests {
       (Select, "SELECT"),
       (SemiColon, ";"),
       (Insert, "INSERT"),
-      (Yet, "foo"),
-      (Yet, "bar"),
+      (StringLiteral, "foo"),
+      (StringLiteral, "bar"),
+      (StringLiteral, "a@b.c"),
       (SemiColon, ";"),
       (Delete, "DELETE"),
-      (Yet, "foo"),
+      (StringLiteral, "foo"),
       (SemiColon, ";"),
       (Eof, ""),
     ];

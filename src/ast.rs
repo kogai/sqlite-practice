@@ -103,7 +103,7 @@ DELETE;"#.to_string(),
     use self::Ast::*;
 
     assert_eq!(
-      Parser::new(Lexer::new(r#"INSERT 1 foo bar@buzz.com;"#.to_string(),)).parse(),
+      Parser::new(Lexer::new(r#"INSERT 1 foo 'bar@buzz.com';"#.to_string(),)).parse(),
       vec![InsertExpression(vec![
         "1".to_owned(),
         "foo".to_owned(),
