@@ -1,0 +1,25 @@
+{
+  "name": "sqlite",
+  "version": "1.0.0",
+  "description": "[Let's Build a Simple Database](https://cstack.github.io/db_tutorial/)",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kogai/sqlite.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kogai/sqlite/issues"
+  },
+  "homepage": "https://github.com/kogai/sqlite#readme",
+  "dependencies": {
+    "webassembly": "^0.11.0"
+  }
+}
