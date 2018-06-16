@@ -53,3 +53,14 @@ fn e2e_insert() {
     ]
   );
 }
+
+#[test]
+fn e2e_seek() {
+  use std::fs::File;
+  use std::io::{Read, Seek, SeekFrom};
+  let mut file = File::open("./Cargo.toml").unwrap();
+  let _ = file.seek(SeekFrom::Start(10));
+  let mut buf = [0; 4];
+  let _ = file.read_exact(&mut buf);
+  assert_eq!("name".to_owned(), String::from_utf8_lossy(&buf));
+}

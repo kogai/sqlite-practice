@@ -1,3 +1,4 @@
+use pager::Pager;
 use std::fmt;
 use std::mem::transmute;
 
@@ -11,7 +12,7 @@ const ID_SIZE: usize = 4;
 const USERNAME_SIZE: usize = 32;
 const EMAIL_SIZE: usize = 255;
 const ROW_SIZE: usize = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
-const PAGE_SIZE: usize = 4096;
+pub const PAGE_SIZE: usize = 4096;
 const ROWS_PER_PAGE: usize = PAGE_SIZE / ROW_SIZE;
 // const MAX_PAGE: usize = 100;
 // const MAX_ROWS: usize = ROWS_PER_PAGE * MAX_PAGE;
@@ -86,18 +87,16 @@ impl fmt::Debug for Row {
   }
 }
 
-type Page = Vec<u8>;
-
 #[derive(Debug)]
 pub struct Table {
-  pages: Vec<Page>,
+  pager: Pager,
   last_row: u32,
 }
 
 impl Table {
   pub fn open_db() -> Self {
     Table {
-      pages: vec![],
+      pager: Pager::open(),
       last_row: 0,
     }
   }
@@ -108,13 +107,14 @@ impl Table {
     let page_num = row_num / ROWS_PER_PAGE;
 
     self.last_row += 1;
+    self.pager.set_len(page_num);
 
     let mut page_empty = vec![];
     page_empty.resize(PAGE_SIZE, 0);
     let mut page = self
-      .pages
-      .get(page_num)
-      .unwrap_or(&mut page_empty)
+      .pager
+      .get_page(page_num)
+      .unwrap_or(page_empty)
       .to_owned();
 
     let row_offset = row_num % ROWS_PER_PAGE;
@@ -126,23 +126,15 @@ impl Table {
       page[i] = *el;
     }
 
-    match self.pages.get_mut(page_num) {
-      Some(_) => {
-        let pages = self.pages.as_mut_slice();
-        pages[page_num] = page;
-      }
-      None => {
-        self.pages.push(page);
-      }
-    };
+    self.pager.flush_page(page_num, page).unwrap();
   }
 
-  pub fn select(&self) -> Vec<Row> {
+  pub fn select(&mut self) -> Vec<Row> {
     let row_num = self.last_row as usize;
     let mut buf: Vec<Row> = vec![];
     for i in 0..row_num {
       let page_num = i / ROWS_PER_PAGE;
-      let mut page = self.pages.get(page_num).unwrap().to_owned();
+      let mut page = self.pager.get_page(page_num).unwrap();
       let row_offset = i % ROWS_PER_PAGE;
       let byte_offset = row_offset * ROW_SIZE;
       let row = page
@@ -194,7 +186,7 @@ mod tests {
       ));
     }
     assert_eq!(table.last_row, 20);
-    assert_eq!(table.pages.len(), 2);
+    assert_eq!(table.pager.len(), 2);
   }
 
   #[test]

@@ -1,5 +1,5 @@
 mod ast;
-mod page;
+mod pager;
 mod table;
 mod token;
 
