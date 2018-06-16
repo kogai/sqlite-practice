@@ -1,5 +1,5 @@
 use std::env::current_dir;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 use table::PAGE_SIZE;
@@ -8,7 +8,6 @@ use table::PAGE_SIZE;
 pub struct Pager {
   file: File,
   seek_cursor: u64,
-  size: usize,
 }
 
 impl Pager {
@@ -21,16 +20,20 @@ impl Pager {
       .expect("Getting current directory is failed.")
   }
 
-  pub fn open() -> Self {
-    let disk = Pager::get_disk();
-    let file = match File::open(&disk) {
-      Ok(file) => file,
-      Err(_) => File::create(&disk).expect("Can not create database file."),
+  pub fn open(disk: Option<String>) -> Self {
+    let path_of_disk = match disk {
+      Some(path) => PathBuf::from(path),
+      None => Pager::get_disk(),
     };
+    let file = OpenOptions::new()
+      .read(true)
+      .write(true)
+      .create(true)
+      .open(&path_of_disk)
+      .unwrap();
     Pager {
       file,
       seek_cursor: 0,
-      size: 0,
     }
   }
 
@@ -47,13 +50,5 @@ impl Pager {
     self.file.seek(SeekFrom::Start(offset))?;
     self.file.write(&data)?;
     Ok(())
-  }
-
-  pub fn set_len(&mut self, size: usize) {
-    self.size = size;
-  }
-
-  pub fn len(&self) -> usize {
-    self.size
   }
 }

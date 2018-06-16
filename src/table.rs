@@ -14,8 +14,6 @@ const EMAIL_SIZE: usize = 255;
 const ROW_SIZE: usize = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
 pub const PAGE_SIZE: usize = 4096;
 const ROWS_PER_PAGE: usize = PAGE_SIZE / ROW_SIZE;
-// const MAX_PAGE: usize = 100;
-// const MAX_ROWS: usize = ROWS_PER_PAGE * MAX_PAGE;
 
 pub struct Row {
   id: u32,
@@ -94,9 +92,9 @@ pub struct Table {
 }
 
 impl Table {
-  pub fn open_db() -> Self {
+  pub fn open_db(disk: Option<String>) -> Self {
     Table {
-      pager: Pager::open(),
+      pager: Pager::open(disk),
       last_row: 0,
     }
   }
@@ -107,7 +105,6 @@ impl Table {
     let page_num = row_num / ROWS_PER_PAGE;
 
     self.last_row += 1;
-    self.pager.set_len(page_num);
 
     let mut page_empty = vec![];
     page_empty.resize(PAGE_SIZE, 0);
@@ -125,7 +122,6 @@ impl Table {
       let el = row.get(idx_of_row).unwrap();
       page[i] = *el;
     }
-
     self.pager.flush_page(page_num, page).unwrap();
   }
 
@@ -151,6 +147,16 @@ impl Table {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use std::time::{SystemTime, UNIX_EPOCH};
+
+  fn db_by_timestamp(name: &str) -> Option<String> {
+    if let Ok(ts) = SystemTime::now().duration_since(UNIX_EPOCH) {
+      let ts = ts.as_secs();
+      Some(format!("./tmp/{}.{}.db", name, ts))
+    } else {
+      unreachable!();
+    }
+  }
 
   impl PartialEq for Row {
     fn eq(&self, other: &Self) -> bool {
@@ -177,7 +183,7 @@ mod tests {
 
   #[test]
   fn test_insert() {
-    let mut table = Table::open_db();
+    let mut table = Table::open_db(db_by_timestamp("test_insert"));
     for i in 0..20 {
       table.insert(Row::new(
         i,
@@ -186,12 +192,11 @@ mod tests {
       ));
     }
     assert_eq!(table.last_row, 20);
-    assert_eq!(table.pager.len(), 2);
   }
 
   #[test]
   fn test_select() {
-    let mut table = Table::open_db();
+    let mut table = Table::open_db(db_by_timestamp("test_select"));
     let mut expects = vec![];
     for i in 0..20 {
       table.insert(Row::new(

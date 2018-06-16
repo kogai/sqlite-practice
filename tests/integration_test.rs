@@ -2,6 +2,11 @@ use std::env::current_dir;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
+fn setup_each() {
+  let cmd = Command::new("make").arg("clean").output().unwrap();
+  println!("{}", String::from_utf8_lossy(cmd.stdout.as_slice()));
+}
+
 macro_rules! assert_command {
   ($cmd:expr, $expect:expr) => {
     let mut cwd = current_dir().expect("To get current directory failed.");
@@ -45,6 +50,7 @@ Use ".open FILENAME" to reopen on a persistent database.
 
 #[test]
 fn e2e_insert() {
+  setup_each();
   assert_command!(
     vec!["insert 1 foo 'a@b.c';", "select;"],
     vec![

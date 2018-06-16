@@ -31,7 +31,7 @@ fn parse(raw_query: String, tbl: &mut Table) -> Vec<u8> {
 fn run() {
     let prompt = "sqlite> ";
     let mut input_buffer = String::new();
-    let mut tbl = Table::open_db();
+    let mut tbl = Table::open_db(None);
 
     loop {
         io::stdout().write_all(&mut prompt.as_bytes()).unwrap();

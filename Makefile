@@ -33,3 +33,7 @@ $(NAME).release.wast: $(WASM_RELEASE)
 install:
 	rustup target add wasm32-unknown-unknown
 	npm install
+
+.PHONY: clean
+clean:
+	rm tmp/*.db
