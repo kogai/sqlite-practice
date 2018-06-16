@@ -1,4 +1,5 @@
 mod ast;
+mod page;
 mod table;
 mod token;
 
@@ -30,16 +31,19 @@ fn parse(raw_query: String, tbl: &mut Table) -> Vec<u8> {
 fn run() {
     let prompt = "sqlite> ";
     let mut input_buffer = String::new();
-    let mut tbl = Table::new();
+    let mut tbl = Table::open_db();
 
     loop {
         io::stdout().write_all(&mut prompt.as_bytes()).unwrap();
         io::stdout().flush().unwrap();
-
-        io::stdin().read_line(&mut input_buffer).unwrap();
+        // Handle a case for input only EOF.
+        if let Ok(0) = io::stdin().read_line(&mut input_buffer) {
+            exit(0);
+        }
         let cmd = input_buffer.to_owned();
         let mut result = match cmd.as_str().trim() {
             ".exit" => exit(0),
+            "" => vec![],
             cmd => parse(cmd.to_owned(), &mut tbl),
         };
         io::stdout().write_all(&mut result).unwrap();

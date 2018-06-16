@@ -95,7 +95,7 @@ pub struct Table {
 }
 
 impl Table {
-  pub fn new() -> Self {
+  pub fn open_db() -> Self {
     Table {
       pages: vec![],
       last_row: 0,
@@ -185,7 +185,7 @@ mod tests {
 
   #[test]
   fn test_insert() {
-    let mut table = Table::new();
+    let mut table = Table::open_db();
     for i in 0..20 {
       table.insert(Row::new(
         i,
@@ -199,7 +199,7 @@ mod tests {
 
   #[test]
   fn test_select() {
-    let mut table = Table::new();
+    let mut table = Table::open_db();
     let mut expects = vec![];
     for i in 0..20 {
       table.insert(Row::new(
