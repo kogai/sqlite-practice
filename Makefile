@@ -29,6 +29,10 @@ $(NAME).debug.wast: $(WASM_DEBUG)
 $(NAME).release.wast: $(WASM_RELEASE)
 	$(WASM_NPM_BIN) disassemble -o $(NAME).release.wast $(WASM_RELEASE)
 
+.PHONY: test
+test: $(DEBUG) clean
+	cargo test 
+
 .PHONY: install
 install:
 	rustup target add wasm32-unknown-unknown
@@ -36,4 +40,4 @@ install:
 
 .PHONY: clean
 clean:
-	rm tmp/*.db
+	rm -f tmp/*.db

@@ -9,8 +9,8 @@ matrix:
   include:
     - os: linux
     - os: osx
-before_script:
-  - make target/release/sqlite
+script:
+  - make test
 notifications:
   email:
     on_success: never

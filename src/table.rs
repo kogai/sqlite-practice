@@ -11,7 +11,7 @@ NOTE: For simplicity, we hardcode a user schema as above.
 const ID_SIZE: usize = 4;
 const USERNAME_SIZE: usize = 32;
 const EMAIL_SIZE: usize = 255;
-const ROW_SIZE: usize = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
+pub const ROW_SIZE: usize = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
 pub const PAGE_SIZE: usize = 4096;
 const ROWS_PER_PAGE: usize = PAGE_SIZE / ROW_SIZE;
 
@@ -20,6 +20,9 @@ pub struct Row {
   username: [u8; USERNAME_SIZE],
   email: [u8; EMAIL_SIZE],
 }
+
+#[derive(Debug)]
+pub struct Error;
 
 impl Row {
   pub fn new(id: u32, username: String, email: String) -> Self {
@@ -49,7 +52,7 @@ impl Row {
     serialized
   }
 
-  pub fn de(source: [u8; ROW_SIZE]) -> Self {
+  pub fn de(source: [u8; ROW_SIZE]) -> Result<Self, Error> {
     let username_offset = ID_SIZE + USERNAME_SIZE;
     let id = &source[0..ID_SIZE];
     let username = &source[ID_SIZE..username_offset];
@@ -62,13 +65,18 @@ impl Row {
     buf_username.copy_from_slice(&username);
     buf_email.copy_from_slice(&email);
 
-    let id: u32 = unsafe { transmute(buf_id) };
-    let username: [u8; USERNAME_SIZE] = unsafe { transmute(buf_username) };
-    let email: [u8; EMAIL_SIZE] = unsafe { transmute(buf_email) };
-    Row {
-      id,
-      username,
-      email,
+    match (buf_username.get(0), buf_email.get(0)) {
+      (Some(y), Some(z)) if *y > 0 && *z > 0 => {
+        let id: u32 = unsafe { transmute(buf_id) };
+        let username: [u8; USERNAME_SIZE] = unsafe { transmute(buf_username) };
+        let email: [u8; EMAIL_SIZE] = unsafe { transmute(buf_email) };
+        Ok(Row {
+          id,
+          username,
+          email,
+        })
+      }
+      _ => Err(Error),
     }
   }
 }
@@ -88,15 +96,14 @@ impl fmt::Debug for Row {
 #[derive(Debug)]
 pub struct Table {
   pager: Pager,
-  last_row: u32,
+  last_row: u64,
 }
 
 impl Table {
   pub fn open_db(disk: Option<String>) -> Self {
-    Table {
-      pager: Pager::open(disk),
-      last_row: 0,
-    }
+    let mut pager = Pager::open(disk);
+    let last_row = pager.rows();
+    Table { pager, last_row }
   }
 
   pub fn insert(&mut self, row: Row) {
@@ -138,7 +145,9 @@ impl Table {
         .collect::<Vec<_>>();
       let mut buf_row = [0; ROW_SIZE];
       buf_row.copy_from_slice(&row);
-      buf.push(Row::de(buf_row));
+      if let Ok(row) = Row::de(buf_row) {
+        buf.push(row);
+      }
     }
     buf
   }
@@ -177,7 +186,7 @@ mod tests {
       "sample-user-name".to_owned(),
       "sample-email@user.com".to_owned(),
     );
-    assert_eq!(bytes_of_row, Row::de(bytes_of_row.ser()));
+    assert_eq!(bytes_of_row, Row::de(bytes_of_row.ser()).unwrap());
     assert_eq!(bytes_of_row.ser().len(), ROW_SIZE);
   }
 

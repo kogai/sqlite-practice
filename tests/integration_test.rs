@@ -10,7 +10,7 @@ fn setup_each() {
 macro_rules! assert_command {
   ($cmd:expr, $expect:expr) => {
     let mut cwd = current_dir().expect("To get current directory failed.");
-    cwd.push("target/release/sqlite");
+    cwd.push("target/debug/sqlite");
     let mut child = Command::new(cwd)
       .stdin(Stdio::piped())
       .stdout(Stdio::piped())
@@ -57,6 +57,22 @@ fn e2e_insert() {
       "Insert successed.",
       "[Row { id: 1, username: foo, email: a@b.c }]",
     ]
+  );
+}
+
+#[test]
+fn e2e_persist() {
+  setup_each();
+  assert_command!(
+    vec!["insert 1 foo 'a@b.c';", "select;"],
+    vec![
+      "Insert successed.",
+      "[Row { id: 1, username: foo, email: a@b.c }]",
+    ]
+  );
+  assert_command!(
+    vec!["select;"],
+    vec!["[Row { id: 1, username: foo, email: a@b.c }]"]
   );
 }
 
