@@ -1,5 +1,8 @@
+extern crate serde;
+
 mod ast;
 mod pager;
+mod row;
 mod table;
 mod token;
 
