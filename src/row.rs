@@ -1,11 +1,10 @@
 use std::collections::HashMap;
+use std::fmt;
 
-// const ID_SIZE: usize = 4;
-// const USERNAME_SIZE: usize = 32;
-// const EMAIL_SIZE: usize = 255;
-// pub const ROW_SIZE: usize = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
 pub const PAGE_SIZE: usize = 4096;
-// const ROWS_PER_PAGE: usize = PAGE_SIZE / ROW_SIZE;
+
+#[derive(Debug)]
+pub struct Error;
 
 enum DataType {
   TEXT(usize),
@@ -20,20 +19,19 @@ impl DataType {
     use self::DataType::*;
     match self {
       &TEXT(size) => size,
-      &INTEGER => 4,
+      &INTEGER => 10,
     }
   }
 }
 
-pub struct Row {
-  data: Vec<u8>,
+pub struct Definition {
   definitions: HashMap<String, DataType>,
   row_size: usize,
   row_per_page: usize,
 }
 
-impl Row {
-  pub fn new(id: u32, username: String, email: String) -> Self {
+impl Definition {
+  pub fn new() -> Self {
     use self::DataType::*;
 
     // Hardcoded definition of the row.
@@ -44,97 +42,87 @@ impl Row {
     let row_size = hs.iter().fold(0, |acc, (_, v)| acc + v.size());
     let row_per_page = PAGE_SIZE / row_size;
 
-    // let mut buf_username = [0; USERNAME_SIZE];
-    // let mut buf_email = [0; EMAIL_SIZE];
-    // let mut rest_username = vec![];
-    // rest_username.resize(USERNAME_SIZE - username.len(), 0);
-    // let mut rest_email = vec![];
-    // rest_email.resize(EMAIL_SIZE - email.len(), 0);
-
-    // buf_username.copy_from_slice([username.as_bytes(), &rest_username].concat().as_slice());
-    // buf_email.copy_from_slice([email.as_bytes(), &rest_email].concat().as_slice());
-
-    Row {
-      data: vec![],
+    Definition {
       definitions: hs,
       row_size,
       row_per_page,
     }
   }
+
+  fn size_of(&self, key: &str) -> usize {
+    let value = self
+      .definitions
+      .get(key)
+      .expect("Wrong key has been passed");
+    value.size()
+  }
 }
 
-// impl Row {
-//   pub fn ser(&self) -> [u8; ROW_SIZE] {
-//     // let mut serialized = [0u8; ROW_SIZE];
-//     // let id: [u8; ID_SIZE] = unsafe { transmute(self.id) };
-//     // let username: [u8; USERNAME_SIZE] = unsafe { transmute(self.username) };
-//     // let email: [u8; EMAIL_SIZE] = unsafe { transmute(self.email) };
-//     // serialized.copy_from_slice([&id[..], &username[..], &email].concat().as_slice());
-//     // serialized
-//     unimplemented!();
-//   }
+pub struct Row {
+  pub data: Vec<u8>,
+  id: u32,
+  username: String,
+  email: String,
+}
 
-//   pub fn de(source: [u8; ROW_SIZE]) -> Result<Self, Error> {
-//     //   let username_offset = ID_SIZE + USERNAME_SIZE;
-//     //   let id = &source[0..ID_SIZE];
-//     //   let username = &source[ID_SIZE..username_offset];
-//     //   let email = &source[username_offset..];
+impl Row {
+  pub fn ser(id: u32, username: String, email: String, def: &Definition) -> Self {
+    let mut buf_id = format!("{}", id).as_bytes().to_vec();
+    buf_id.resize(def.size_of("id"), 0);
 
-//     //   let mut buf_id = [0; ID_SIZE];
-//     //   let mut buf_username = [0; USERNAME_SIZE];
-//     //   let mut buf_email = [0; EMAIL_SIZE];
-//     //   buf_id.copy_from_slice(&id);
-//     //   buf_username.copy_from_slice(&username);
-//     //   buf_email.copy_from_slice(&email);
+    let mut bu_username = username.as_bytes().to_vec();
+    bu_username.resize(def.size_of("username"), 0);
 
-//     //   match (buf_username.get(0), buf_email.get(0)) {
-//     //     (Some(y), Some(z)) if *y > 0 && *z > 0 => {
-//     //       let id: u32 = unsafe { transmute(buf_id) };
-//     //       let username: [u8; USERNAME_SIZE] = unsafe { transmute(buf_username) };
-//     //       let email: [u8; EMAIL_SIZE] = unsafe { transmute(buf_email) };
-//     //       Ok(Row {
-//     //         id,
-//     //         username,
-//     //         email,
-//     //       })
-//     //     }
-//     //     _ => Err(Error),
-//     //   }
-//     unimplemented!();
-//   }
-// }
+    let mut buf_email = email.as_bytes().to_vec();
+    buf_email.resize(def.size_of("email"), 0);
 
-// impl fmt::Debug for Row {
-//   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//     let username = String::from_utf8_lossy(&self.username);
-//     let email = String::from_utf8_lossy(&self.email);
-//     write!(
-//       f,
-//       "Row {{ id: {}, username: {}, email: {} }}",
-//       self.id, username, email
-//     )
-//   }
-// }
+    let serialized = [&buf_id[..], &bu_username[..], &buf_email].concat();
+    if serialized.len() != def.row_size {
+      panic!("Wrong size of row");
+    }
 
-// pub trait Serialize {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: Serializer;
-// }
-
-// pub trait Deserialize<'de>: Sized {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>;
-// }
-
-mod tests {
-  use super::*;
-
-  #[test]
-  fn test_row_size() {
-    println!("{:b}", 100u32);
-    println!("{:?}", 1.0f32);
+    Row {
+      data: serialized,
+      id,
+      username,
+      email,
+    }
   }
 
+  pub fn de(source: Vec<u8>, def: &Definition) -> Result<Self, Error> {
+    use std::str::from_utf8;
+
+    let id_offset = 0;
+    let username_offset = id_offset + def.size_of("id");
+    let email_offset = username_offset + def.size_of("username");
+
+    let id = &source[0..username_offset];
+    let username = &source[username_offset..email_offset];
+    let email = &source[email_offset..];
+
+    match (id.get(0), username.get(0), email.get(0)) {
+      (Some(x), Some(y), Some(z)) if *x > 0 && *y > 0 && *z > 0 => {
+        let id = u32::from_str_radix(from_utf8(id).unwrap(), 10).unwrap();
+        let username = from_utf8(username).unwrap().to_owned();
+        let email = from_utf8(email).unwrap().to_owned();
+        Ok(Row {
+          data: source.to_owned(),
+          id,
+          username,
+          email,
+        })
+      }
+      _ => Err(Error),
+    }
+  }
+}
+
+impl fmt::Debug for Row {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(
+      f,
+      "Row {{ id: {}, username: {}, email: {} }}",
+      self.id, self.username, self.email
+    )
+  }
 }

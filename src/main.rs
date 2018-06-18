@@ -1,5 +1,3 @@
-extern crate serde;
-
 mod ast;
 mod pager;
 mod row;
@@ -7,24 +5,26 @@ mod table;
 mod token;
 
 use ast::{Ast, Parser};
+use row::{Definition, Row};
 use std::io::{self, Write};
 use std::process::exit;
-use table::{Row, Table};
+use table::Table;
 use token::Lexer;
 
 fn parse(raw_query: String, tbl: &mut Table) -> Vec<u8> {
     let expressions = Parser::new(Lexer::new(raw_query)).parse();
+    let def = Definition::new();
     match expressions.get(0).unwrap() {
         Ast::InsertExpression(statements) => {
             let id = u32::from_str_radix(statements.get(0).unwrap().as_ref(), 10).unwrap();
             let username = statements.get(1).unwrap().to_owned();
             let email = statements.get(2).unwrap().to_owned();
-            let row = Row::new(id, username, email);
+            let row = Row::ser(id, username, email, &def);
             tbl.insert(row);
             b"Insert successed.\n".to_vec()
         }
         Ast::SelectExpression => {
-            let result = tbl.select();
+            let result = tbl.select(&def);
             format!("{:?}\n", result).as_bytes().to_vec()
         }
         Ast::DeleteExpression => b"Not implemented yet.\n".to_vec(),
