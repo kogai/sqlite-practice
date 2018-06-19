@@ -58,6 +58,7 @@ impl Definition {
   }
 }
 
+#[derive(PartialEq)]
 pub struct Row {
   pub data: Vec<u8>,
   id: u32,
@@ -89,7 +90,7 @@ impl Row {
     }
   }
 
-  pub fn de(source: Vec<u8>, def: &Definition) -> Result<Self, Error> {
+  pub fn de(source: &Vec<u8>, def: &Definition) -> Result<Self, Error> {
     use std::str::from_utf8;
 
     let id_offset = 0;

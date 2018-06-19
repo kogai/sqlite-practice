@@ -60,7 +60,7 @@ impl Table {
         .collect::<Vec<_>>();
       let mut buf_row = vec![0; ROW_SIZE];
       buf_row.copy_from_slice(&row);
-      if let Ok(row) = Row::de(buf_row, def) {
+      if let Ok(row) = Row::de(&buf_row, def) {
         buf.push(row);
       }
     }
@@ -82,37 +82,29 @@ mod tests {
     }
   }
 
-  impl PartialEq for Row {
-    fn eq(&self, other: &Self) -> bool {
-      self.id == other.id && self.username == other.username
-        && String::from_utf8_lossy(&self.email) == String::from_utf8_lossy(&other.email)
-    }
-
-    fn ne(&self, other: &Self) -> bool {
-      self.id != other.id || self.username != other.username
-        || String::from_utf8_lossy(&self.email) != String::from_utf8_lossy(&other.email)
-    }
-  }
-
   #[test]
   fn test_ser() {
-    let bytes_of_row = Row::new(
+    let def = Definition::new();
+    let bytes_of_row = Row::ser(
       1u32,
       "sample-user-name".to_owned(),
       "sample-email@user.com".to_owned(),
+      &def,
     );
-    assert_eq!(bytes_of_row, Row::de(bytes_of_row.ser()).unwrap());
-    assert_eq!(bytes_of_row.ser().len(), ROW_SIZE);
+    assert_eq!(bytes_of_row, Row::de(&bytes_of_row.data, &def).unwrap());
+    assert_eq!(bytes_of_row.data.len(), ROW_SIZE);
   }
 
   #[test]
   fn test_insert() {
+    let def = Definition::new();
     let mut table = Table::open_db(db_by_timestamp("test_insert"));
     for i in 0..20 {
-      table.insert(Row::new(
+      table.insert(Row::ser(
         i,
         format!("sample-user-name-{}", i),
         format!("sample-user-name-{}@user.com", i),
+        &def,
       ));
     }
     assert_eq!(table.last_row, 20);
@@ -120,20 +112,23 @@ mod tests {
 
   #[test]
   fn test_select() {
+    let def = Definition::new();
     let mut table = Table::open_db(db_by_timestamp("test_select"));
     let mut expects = vec![];
     for i in 0..20 {
-      table.insert(Row::new(
+      table.insert(Row::ser(
         i,
         format!("sample-user-name-{}", i),
         format!("sample-user-name-{}@user.com", i),
+        &def,
       ));
-      expects.push(Row::new(
+      expects.push(Row::ser(
         i,
         format!("sample-user-name-{}", i),
         format!("sample-user-name-{}@user.com", i),
+        &def,
       ));
     }
-    assert_eq!(table.select(), expects);
+    assert_eq!(table.select(&def), expects);
   }
 }

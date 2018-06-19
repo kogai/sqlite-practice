@@ -68,7 +68,7 @@ impl Pager {
       }
       self.file.seek(SeekFrom::Start(offset)).unwrap();
       self.file.read_exact(&mut buf).unwrap();
-      if let Ok(_) = Row::de(buf.to_vec(), &def) {
+      if let Ok(_) = Row::de(&buf.to_vec(), &def) {
         offset += ROW_SIZE as u64;
         row_num += 1;
       } else {
