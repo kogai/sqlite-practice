@@ -26,7 +26,7 @@ impl DataType {
 
 pub struct Definition {
   definitions: HashMap<String, DataType>,
-  row_size: usize,
+  pub row_size: usize,
   row_per_page: usize,
 }
 
@@ -103,7 +103,12 @@ impl Row {
 
     match (id.get(0), username.get(0), email.get(0)) {
       (Some(x), Some(y), Some(z)) if *x > 0 && *y > 0 && *z > 0 => {
-        let id = u32::from_str_radix(from_utf8(id).unwrap(), 10).unwrap();
+        let mut id = id.into_iter()
+          .rev()
+          .skip_while(|x| **x == 0)
+          .map(|x| *x)
+          .collect::<Vec<_>>();
+        let id = u32::from_str_radix(from_utf8(id.as_slice()).unwrap(), 10).unwrap();
         let username = from_utf8(username).unwrap().to_owned();
         let email = from_utf8(email).unwrap().to_owned();
         Ok(Row {
@@ -122,8 +127,14 @@ impl fmt::Debug for Row {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(
       f,
-      "Row {{ id: {}, username: {}, email: {} }}",
+      "Row! {{ id: {}, username: {}, email: {} }}",
       self.id, self.username, self.email
     )
   }
 }
+
+// impl PartialEq for Row {
+//   fn eq(&self, other: &Row) -> bool {
+//     self.isbn == other.isbn
+//   }
+// }
