@@ -1,30 +1,28 @@
 use pager::Pager;
-use row::{Definition, Row};
-
-const ID_SIZE: usize = 4;
-const USERNAME_SIZE: usize = 32;
-const EMAIL_SIZE: usize = 255;
-pub const ROW_SIZE: usize = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
-pub const PAGE_SIZE: usize = 4096;
-const ROWS_PER_PAGE: usize = PAGE_SIZE / ROW_SIZE;
+use row::{Definition, Row, PAGE_SIZE};
 
 #[derive(Debug)]
-pub struct Table {
+pub struct Table<'a> {
   pager: Pager,
   last_row: u64,
+  pub def: &'a Definition,
 }
 
-impl Table {
-  pub fn open_db(disk: Option<String>) -> Self {
+impl<'a> Table<'a> {
+  pub fn open_db(disk: Option<String>, def: &'a Definition) -> Self {
     let mut pager = Pager::open(disk);
-    let last_row = pager.rows();
-    Table { pager, last_row }
+    let last_row = pager.rows(&def);
+    Table {
+      pager,
+      last_row,
+      def,
+    }
   }
 
   pub fn insert(&mut self, row: Row) {
     let row = row.data;
     let row_num = self.last_row as usize;
-    let page_num = row_num / ROWS_PER_PAGE;
+    let page_num = row_num / self.def.row_per_page;
 
     self.last_row += 1;
 
@@ -36,10 +34,10 @@ impl Table {
       .unwrap_or(page_empty)
       .to_owned();
 
-    let row_offset = row_num % ROWS_PER_PAGE;
-    let byte_offset = row_offset * ROW_SIZE;
+    let row_offset = row_num % self.def.row_per_page;
+    let byte_offset = row_offset * self.def.row_size;
 
-    for i in byte_offset..byte_offset + ROW_SIZE {
+    for i in byte_offset..byte_offset + self.def.row_size {
       let idx_of_row = i - byte_offset;
       let el = row.get(idx_of_row).unwrap();
       page[i] = *el;
@@ -47,20 +45,20 @@ impl Table {
     self.pager.flush_page(page_num, page).unwrap();
   }
 
-  pub fn select(&mut self, def: &Definition) -> Vec<Row> {
+  pub fn select(&mut self) -> Vec<Row> {
     let row_num = self.last_row as usize;
     let mut buf: Vec<Row> = vec![];
     for i in 0..row_num {
-      let page_num = i / ROWS_PER_PAGE;
+      let page_num = i / self.def.row_per_page;
       let mut page = self.pager.get_page(page_num).unwrap();
-      let row_offset = i % ROWS_PER_PAGE;
-      let byte_offset = row_offset * ROW_SIZE;
+      let row_offset = i % self.def.row_per_page;
+      let byte_offset = row_offset * self.def.row_size;
       let row = page
-        .drain(byte_offset..byte_offset + ROW_SIZE)
+        .drain(byte_offset..byte_offset + self.def.row_size)
         .collect::<Vec<_>>();
-      let mut buf_row = vec![0; ROW_SIZE];
+      let mut buf_row = vec![0; self.def.row_size];
       buf_row.copy_from_slice(&row);
-      if let Ok(row) = Row::de(&buf_row, def) {
+      if let Ok(row) = Row::de(&buf_row, &self.def) {
         buf.push(row);
       }
     }
@@ -92,14 +90,14 @@ mod tests {
       &def,
     );
     println!("{:?}", Row::de(&bytes_of_row.data, &def).unwrap());
-    // assert_eq!(bytes_of_row, Row::de(&bytes_of_row.data, &def).unwrap());
+    assert_eq!(bytes_of_row, Row::de(&bytes_of_row.data, &def).unwrap());
     assert_eq!(bytes_of_row.data.len(), def.row_size);
   }
 
   #[test]
   fn test_insert() {
     let def = Definition::new();
-    let mut table = Table::open_db(db_by_timestamp("test_insert"));
+    let mut table = Table::open_db(db_by_timestamp("test_insert"), &def);
     for i in 0..20 {
       table.insert(Row::ser(
         i,
@@ -114,7 +112,7 @@ mod tests {
   #[test]
   fn test_select() {
     let def = Definition::new();
-    let mut table = Table::open_db(db_by_timestamp("test_select"));
+    let mut table = Table::open_db(db_by_timestamp("test_select"), &def);
     let mut expects = vec![];
     for i in 0..20 {
       table.insert(Row::ser(
@@ -127,9 +125,9 @@ mod tests {
         i,
         format!("sample-user-name-{}", i),
         format!("sample-user-name-{}@user.com", i),
-        &def,
+        &table.def,
       ));
     }
-    assert_eq!(table.select(&def), expects);
+    assert_eq!(table.select(), expects);
   }
 }

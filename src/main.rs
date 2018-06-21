@@ -13,18 +13,17 @@ use token::Lexer;
 
 fn parse(raw_query: String, tbl: &mut Table) -> Vec<u8> {
     let expressions = Parser::new(Lexer::new(raw_query)).parse();
-    let def = Definition::new();
     match expressions.get(0).unwrap() {
         Ast::InsertExpression(statements) => {
             let id = u32::from_str_radix(statements.get(0).unwrap().as_ref(), 10).unwrap();
             let username = statements.get(1).unwrap().to_owned();
             let email = statements.get(2).unwrap().to_owned();
-            let row = Row::ser(id, username, email, &def);
+            let row = Row::ser(id, username, email, &tbl.def);
             tbl.insert(row);
             b"Insert successed.\n".to_vec()
         }
         Ast::SelectExpression => {
-            let result = tbl.select(&def);
+            let result = tbl.select();
             format!("{:?}\n", result).as_bytes().to_vec()
         }
         Ast::DeleteExpression => b"Not implemented yet.\n".to_vec(),
@@ -34,7 +33,8 @@ fn parse(raw_query: String, tbl: &mut Table) -> Vec<u8> {
 fn run() {
     let prompt = "sqlite> ";
     let mut input_buffer = String::new();
-    let mut tbl = Table::open_db(None);
+    let def = Definition::new();
+    let mut tbl = Table::open_db(None, &def);
 
     loop {
         io::stdout().write_all(&mut prompt.as_bytes()).unwrap();

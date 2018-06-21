@@ -6,6 +6,7 @@ pub const PAGE_SIZE: usize = 4096;
 #[derive(Debug)]
 pub struct Error;
 
+#[derive(Debug)]
 enum DataType {
   TEXT(usize),
   INTEGER,
@@ -24,10 +25,11 @@ impl DataType {
   }
 }
 
+#[derive(Debug)]
 pub struct Definition {
   definitions: HashMap<String, DataType>,
   pub row_size: usize,
-  row_per_page: usize,
+  pub row_per_page: usize,
 }
 
 impl Definition {
@@ -58,7 +60,7 @@ impl Definition {
   }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub struct Row {
   pub data: Vec<u8>,
   id: u32,
@@ -108,9 +110,30 @@ impl Row {
           .skip_while(|x| **x == 0)
           .map(|x| *x)
           .collect::<Vec<_>>();
+
+        let mut username = username
+          .into_iter()
+          .rev()
+          .skip_while(|x| **x == 0)
+          .map(|x| *x)
+          .collect::<Vec<_>>()
+          .into_iter()
+          .rev()
+          .collect::<Vec<_>>();
+
+        let mut email = email
+          .into_iter()
+          .rev()
+          .skip_while(|x| **x == 0)
+          .map(|x| *x)
+          .collect::<Vec<_>>()
+          .into_iter()
+          .rev()
+          .collect::<Vec<_>>();
+
         let id = u32::from_str_radix(from_utf8(id.as_slice()).unwrap(), 10).unwrap();
-        let username = from_utf8(username).unwrap().to_owned();
-        let email = from_utf8(email).unwrap().to_owned();
+        let username = from_utf8(username.as_slice()).unwrap().to_owned();
+        let email = from_utf8(email.as_slice()).unwrap().to_owned();
         Ok(Row {
           data: source.to_owned(),
           id,
@@ -123,15 +146,15 @@ impl Row {
   }
 }
 
-impl fmt::Debug for Row {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(
-      f,
-      "Row! {{ id: {}, username: {}, email: {} }}",
-      self.id, self.username, self.email
-    )
-  }
-}
+// impl fmt::Debug for Row {
+//   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//     write!(
+//       f,
+//       "Row {{ id: {}, username: {}, email: {} }}",
+//       self.id, self.username, self.email
+//     )
+//   }
+// }
 
 // impl PartialEq for Row {
 //   fn eq(&self, other: &Row) -> bool {

@@ -1,9 +1,8 @@
-use row::{Definition, Row};
+use row::{Definition, Row, PAGE_SIZE};
 use std::env::current_dir;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
-use table::{PAGE_SIZE, ROW_SIZE};
 
 #[derive(Debug)]
 pub struct Pager {
@@ -54,11 +53,11 @@ impl Pager {
   }
 
   // NOTE: Compromise O(n) liner counting.
-  pub fn rows(&mut self) -> u64 {
+  pub fn rows(&mut self, def: &Definition) -> u64 {
     let mut offset = 0;
     let mut is_fill = true;
     let mut row_num = 0;
-    let mut buf = [0; ROW_SIZE];
+    let mut buf = vec![0; def.row_size];
     let def = Definition::new();
     while is_fill {
       let file_size = self.file.metadata().map(|m| m.len()).unwrap() as usize;
@@ -69,7 +68,7 @@ impl Pager {
       self.file.seek(SeekFrom::Start(offset)).unwrap();
       self.file.read_exact(&mut buf).unwrap();
       if let Ok(_) = Row::de(&buf.to_vec(), &def) {
-        offset += ROW_SIZE as u64;
+        offset += def.row_size as u64;
         row_num += 1;
       } else {
         is_fill = false;
