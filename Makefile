@@ -7,8 +7,7 @@ WASM_RELEASE := target/$(WASM_TRPL)/release/$(NAME).wasm
 WASM_NPM_BIN := $(shell npm bin)/wa
 SRC := $(shell find ./src -type f -name '*.rs')
 
-
-all: $(DEBUG) $(RELEASE) $(WASM_DEBUG) $(WASM_RELEASE)
+all: $(DEBUG) $(RELEASE) # $(WASM_DEBUG) $(WASM_RELEASE)
 #  $(NAME).debug.wast $(NAME).release.wast
 
 $(DEBUG): $(SRC)

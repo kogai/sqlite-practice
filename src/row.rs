@@ -60,7 +60,6 @@ impl Definition {
   }
 }
 
-#[derive(PartialEq, Debug)]
 pub struct Row {
   pub data: Vec<u8>,
   id: u32,
@@ -69,6 +68,18 @@ pub struct Row {
 }
 
 impl Row {
+  pub fn truncate_tail(source: Vec<u8>) -> Vec<u8> {
+    source
+      .iter()
+      .rev()
+      .skip_while(|x| **x == 0)
+      .collect::<Vec<_>>()
+      .iter()
+      .rev()
+      .map(|x| **x)
+      .collect()
+  }
+
   pub fn ser(id: u32, username: String, email: String, def: &Definition) -> Self {
     let mut buf_id = format!("{}", id).as_bytes().to_vec();
     buf_id.resize(def.size_of("id"), 0);
@@ -105,31 +116,9 @@ impl Row {
 
     match (id.get(0), username.get(0), email.get(0)) {
       (Some(x), Some(y), Some(z)) if *x > 0 && *y > 0 && *z > 0 => {
-        let mut id = id.into_iter()
-          .rev()
-          .skip_while(|x| **x == 0)
-          .map(|x| *x)
-          .collect::<Vec<_>>();
-
-        let mut username = username
-          .into_iter()
-          .rev()
-          .skip_while(|x| **x == 0)
-          .map(|x| *x)
-          .collect::<Vec<_>>()
-          .into_iter()
-          .rev()
-          .collect::<Vec<_>>();
-
-        let mut email = email
-          .into_iter()
-          .rev()
-          .skip_while(|x| **x == 0)
-          .map(|x| *x)
-          .collect::<Vec<_>>()
-          .into_iter()
-          .rev()
-          .collect::<Vec<_>>();
+        let mut id = Row::truncate_tail(id.to_vec());
+        let mut username = Row::truncate_tail(username.to_vec());
+        let mut email = Row::truncate_tail(email.to_vec());
 
         let id = u32::from_str_radix(from_utf8(id.as_slice()).unwrap(), 10).unwrap();
         let username = from_utf8(username.as_slice()).unwrap().to_owned();
@@ -146,18 +135,18 @@ impl Row {
   }
 }
 
-// impl fmt::Debug for Row {
-//   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//     write!(
-//       f,
-//       "Row {{ id: {}, username: {}, email: {} }}",
-//       self.id, self.username, self.email
-//     )
-//   }
-// }
+impl fmt::Debug for Row {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(
+      f,
+      "Row {{ id: {}, username: {}, email: {} }}",
+      self.id, self.username, self.email
+    )
+  }
+}
 
-// impl PartialEq for Row {
-//   fn eq(&self, other: &Row) -> bool {
-//     self.isbn == other.isbn
-//   }
-// }
+impl PartialEq for Row {
+  fn eq(&self, other: &Row) -> bool {
+    self.data == other.data
+  }
+}
