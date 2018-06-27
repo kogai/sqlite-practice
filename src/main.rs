@@ -1,4 +1,5 @@
 mod ast;
+mod btree;
 mod pager;
 mod row;
 mod table;
