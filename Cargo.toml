@@ -3,6 +3,9 @@ name = "sqlite"
 version = "0.1.0"
 authors = ["Shinichi Kogai <kogai0121@gmail.com>"]
 
+# [lib]
+# crate-type = ["cdylib"]
+
 [dependencies]
 # libc = "0.2.42"
 # libsqlite3-sys = "0.9.1"
